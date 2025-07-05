@@ -1,0 +1,171 @@
+<div class="cart-container">
+  <div class="cart-header">
+    <h1>Shopping Cart</h1>
+    <p *ngIf="!loading">{{ totalItems }} item{{ totalItems !== 1 ? 's' : '' }} in your cart</p>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="loading-spinner"></div>
+    <p>Loading cart...</p>
+  </div>
+
+  <!-- Empty Cart -->
+  <div *ngIf="!loading && cartItems.length === 0" class="empty-cart">
+    <div class="empty-cart-icon">🛒</div>
+    <h2>Your cart is empty</h2>
+    <p>Looks like you haven't added any products to your cart yet.</p>
+    <a routerLink="/products" class="continue-shopping-btn">Continue Shopping</a>
+  </div>
+
+  <!-- Cart Items -->
+  <div *ngIf="!loading && cartItems.length > 0" class="cart-content">
+    <div class="cart-items">
+      <div *ngFor="let item of cartItems" class="cart-item" [class.out-of-stock]="!item.product.stock || item.product.stock === 0">
+        
+        <!-- Product Image -->
+        <div class="item-image">
+          <img [src]="item.product.thumbnail" [alt]="item.product.title">
+        </div>
+
+        <!-- Product Info -->
+        <div class="item-info">
+          <h3 class="item-title">{{ item.product.title }}</h3>
+          <p class="item-category">{{ item.product.category }}</p>
+          
+          <div class="item-rating">
+            <span class="stars">
+              <span *ngFor="let star of [1,2,3,4,5]" 
+                    [class.filled]="star <= item.product.rating"
+                    class="star">★</span>
+            </span>
+            <span class="rating-text">({{ item.product.rating }})</span>
+          </div>
+
+          <!-- Stock Status -->
+          <div class="stock-status" [class]="getStockStatus(item).class">
+            {{ getStockStatus(item).status }}
+          </div>
+        </div>
+
+        <!-- Price Information -->
+        <div class="item-pricing">
+          <div class="price-breakdown">
+            <div class="original-price" *ngIf="item.product.discountPercentage > 0">
+              <span class="price-label">Original:</span>
+              <span class="price-value">${{ item.product.price | number:'1.2-2' }}</span>
+            </div>
+            <div class="discounted-price">
+              <span class="price-label">Price:</span>
+              <span class="price-value">${{ item.product.price | pricePipe:item.product.discountPercentage }}</span>
+            </div>
+            <div class="discount-badge" *ngIf="item.product.discountPercentage > 0">
+              -{{ item.product.discountPercentage }}% OFF
+            </div>
+          </div>
+        </div>
+
+        <!-- Quantity Controls -->
+        <div class="quantity-controls">
+          <div class="quantity-input-group">
+            <button 
+              (click)="decreaseQuantity(item.product.id)"
+              class="quantity-btn"
+              [disabled]="item.quantity <= 1">
+              -
+            </button>
+            <input 
+              type="number" 
+              [value]="item.quantity"
+              (change)="updateQuantity(item.product.id, $event)"
+              [max]="item.product.stock"
+              min="1"
+              class="quantity-input">
+            <button 
+              (click)="increaseQuantity(item.product.id)"
+              class="quantity-btn"
+              [disabled]="item.quantity >= item.product.stock">
+              +
+            </button>
+          </div>
+          <div class="quantity-info">
+            <span class="max-stock">Max: {{ item.product.stock }}</span>
+          </div>
+        </div>
+
+        <!-- Item Total -->
+        <div class="item-total">
+          <div class="total-breakdown">
+            <div class="original-total" *ngIf="item.product.discountPercentage > 0">
+              <span class="total-label">Original Total:</span>
+              <span class="total-value">${{ getItemTotal(item) | number:'1.2-2' }}</span>
+            </div>
+            <div class="discounted-total">
+              <span class="total-label">Total:</span>
+              <span class="total-value">${{ getItemDiscountedTotal(item) | number:'1.2-2' }}</span>
+            </div>
+            <div class="item-savings" *ngIf="item.product.discountPercentage > 0">
+              <span class="savings-label">You save:</span>
+              <span class="savings-value">${{ getItemTotal(item) - getItemDiscountedTotal(item) | number:'1.2-2' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Remove Button -->
+        <div class="item-actions">
+          <button 
+            (click)="removeItem(item.product.id)"
+            class="remove-btn"
+            title="Remove from cart">
+            🗑️ Remove
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cart Summary -->
+    <div class="cart-summary">
+      <h2>Order Summary</h2>
+      
+      <div class="summary-item">
+        <span>Items ({{ totalItems }}):</span>
+        <span>${{ totalPrice | number:'1.2-2' }}</span>
+      </div>
+      
+      <div class="summary-item savings" *ngIf="getSavings() > 0">
+        <span>Total Savings:</span>
+        <span class="savings-amount">-${{ getSavings() | number:'1.2-2' }}</span>
+      </div>
+      
+      <div class="summary-item total">
+        <span>Total:</span>
+        <span>${{ totalPrice - getSavings() | number:'1.2-2' }}</span>
+      </div>
+
+      <!-- Stock Warning -->
+      <div *ngIf="hasOutOfStockItems" class="stock-warning">
+        ⚠️ Some items in your cart are out of stock. Please remove them to proceed.
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="cart-actions">
+        <button 
+          (click)="clearCart()"
+          class="clear-cart-btn">
+          Clear Cart
+        </button>
+        
+        <button 
+          (click)="checkout()"
+          [disabled]="!canCheckout()"
+          class="checkout-btn">
+          {{ canCheckout() ? 'Proceed to Checkout' : 'Cannot Checkout' }}
+        </button>
+      </div>
+
+      <div class="continue-shopping">
+        <a routerLink="/products" class="continue-link">← Continue Shopping</a>
+      </div>
+    </div>
+  </div>
+</div>

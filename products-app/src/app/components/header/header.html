@@ -1,0 +1,44 @@
+<header class="header">
+  <div class="header-content">
+    <div class="logo">
+      <a routerLink="/products" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">Markiti</a>
+    </div>
+    <nav class="nav">
+      <a routerLink="/products" 
+         routerLinkActive="active" 
+         [routerLinkActiveOptions]="{exact: true}"
+         class="nav-link">
+        Products
+      </a>
+      
+      <!-- Show Login/Register when not logged in -->
+      <ng-container *ngIf="!isLoggedIn">
+        <a routerLink="/login" 
+           routerLinkActive="active" 
+           class="nav-link">
+          Login
+        </a>
+        <a routerLink="/register" 
+           routerLinkActive="active" 
+           class="nav-link">
+          Register
+        </a>
+      </ng-container>
+      
+      <!-- Show user info and logout when logged in -->
+      <ng-container *ngIf="isLoggedIn && user">
+        <div class="user-info">
+          <span class="user-greeting">Hello, {{ user.name }}</span>
+          <button (click)="logout()" class="logout-btn">Logout</button>
+        </div>
+      </ng-container>
+      
+      <a routerLink="/cart" 
+         routerLinkActive="active" 
+         class="nav-link cart-link">
+        <span class="cart-icon">🛒</span>
+        <span class="cart-count" *ngIf="(cartCount$ | async) as count">{{ count }}</span>
+      </a>
+    </nav>
+  </div>
+</header>
