@@ -1,0 +1,200 @@
+<div class="products-container">
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="loading-spinner"></div>
+    <p>Loading products...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="error-container">
+    <div class="error-message">
+      <h3>⚠️ Error Loading Products</h3>
+      <p>{{ error }}</p>
+      <button (click)="loadProducts()" class="retry-btn">Try Again</button>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div *ngIf="!loading && !error" class="products-content">
+    <!-- Filters and Search Section -->
+    <div class="filters-section">
+      <div class="search-box">
+        <input 
+          type="text" 
+          [(ngModel)]="searchTerm"
+          (input)="onSearch()"
+          placeholder="Search products..."
+          class="search-input">
+        <span class="search-icon">🔍</span>
+      </div>
+
+      <div class="filter-controls">
+        <div class="filter-group">
+          <label for="category">Category:</label>
+          <select 
+            id="category"
+            [(ngModel)]="selectedCategory"
+            (change)="onCategoryChange()"
+            class="filter-select">
+            <option value="all">All Categories</option>
+            <option *ngFor="let category of categories" [value]="category">
+              {{ category }}
+            </option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label for="sort">Sort by:</label>
+          <select 
+            id="sort"
+            [(ngModel)]="sortBy"
+            (change)="onSortChange()"
+            class="filter-select">
+            <option value="name">Name</option>
+            <option value="price">Price</option>
+            <option value="rating">Rating</option>
+            <option value="stock">Stock</option>
+          </select>
+          <button 
+            (click)="toggleSortOrder()"
+            class="sort-btn"
+            [title]="sortOrder === 'asc' ? 'Ascending' : 'Descending'">
+            {{ sortOrder === 'asc' ? '↑' : '↓' }}
+          </button>
+        </div>
+
+        <button 
+          (click)="clearFilters()"
+          class="clear-filters-btn">
+          Clear Filters
+        </button>
+      </div>
+
+      <div class="filter-summary">
+        {{ getFilterSummary() }}
+      </div>
+    </div>
+
+    <!-- Products Grid -->
+    <div class="products-grid">
+      <div 
+        *ngFor="let product of paginatedProducts" 
+        class="product-card"
+        [class.out-of-stock]="!product.stock || product.stock === 0">
+        
+        <div class="product-image">
+          <img [src]="product.thumbnail" [alt]="product.title" loading="lazy">
+          <div class="product-overlay">
+            <a [routerLink]="['/products', product.id]" class="view-details-btn">
+              View Details
+            </a>
+          </div>
+        </div>
+
+        <div class="product-info">
+          <h3 class="product-title">{{ product.title }}</h3>
+          <p class="product-category">{{ product.category }}</p>
+          
+          <div class="product-rating">
+            <span class="stars">
+              <span *ngFor="let star of [1,2,3,4,5]" 
+                    [class.filled]="star <= product.rating"
+                    class="star">★</span>
+            </span>
+            <span class="rating-text">({{ product.rating }})</span>
+          </div>
+
+          <div class="product-price">
+            <span class="original-price" *ngIf="product.discountPercentage > 0">
+              ${{ product.price | number:'1.2-2' }}
+            </span>
+            <span class="discounted-price">
+              ${{ product.price | pricePipe:product.discountPercentage }}
+            </span>
+            <span class="discount-badge" *ngIf="product.discountPercentage > 0">
+              -{{ product.discountPercentage }}%
+            </span>
+          </div>
+
+          <div class="product-stock">
+            <span *ngIf="product.stock && product.stock > 0" class="in-stock">
+              In Stock: {{ product.stock }}
+            </span>
+            <span *ngIf="!product.stock || product.stock === 0" class="out-of-stock-text">
+              Out of Stock
+            </span>
+          </div>
+
+          <div class="product-actions">
+            <!-- Cart Controls -->
+            <div *ngIf="isInCart(product)" class="cart-controls">
+              <button 
+                (click)="decreaseQuantity(product)"
+                class="quantity-btn"
+                [disabled]="getCartQuantity(product) <= 1">
+                -
+              </button>
+              <span class="quantity">{{ getCartQuantity(product) }}</span>
+              <button 
+                (click)="increaseQuantity(product)"
+                class="quantity-btn"
+                [disabled]="getCartQuantity(product) >= product.stock">
+                +
+              </button>
+              <button 
+                (click)="removeFromCart(product.id)"
+                class="remove-btn"
+                title="Remove from cart">
+                🗑️
+              </button>
+            </div>
+
+            <!-- Add to Cart Button -->
+            <button 
+              *ngIf="!isInCart(product)"
+              (click)="addToCart(product)"
+              class="add-to-cart-btn"
+              [disabled]="!product.stock || product.stock === 0">
+              <span *ngIf="product.stock && product.stock > 0">Add to Cart</span>
+              <span *ngIf="!product.stock || product.stock === 0">Out of Stock</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- No Results -->
+    <div *ngIf="filteredProducts.length === 0 && !loading" class="no-results">
+      <h3>No products found</h3>
+      <p>Try adjusting your search or filters</p>
+      <button (click)="clearFilters()" class="clear-filters-btn">Clear All Filters</button>
+    </div>
+
+    <!-- Pagination -->
+    <div *ngIf="totalPages > 1" class="pagination">
+      <button 
+        (click)="goToPage(currentPage - 1)"
+        [disabled]="currentPage === 1"
+        class="page-btn">
+        ← Previous
+      </button>
+
+      <div class="page-numbers">
+        <button 
+          *ngFor="let page of getPageNumbers()"
+          (click)="goToPage(page)"
+          [class.active]="page === currentPage"
+          class="page-btn">
+          {{ page }}
+        </button>
+      </div>
+
+      <button 
+        (click)="goToPage(currentPage + 1)"
+        [disabled]="currentPage === totalPages"
+        class="page-btn">
+        Next →
+      </button>
+    </div>
+  </div>
+</div>
